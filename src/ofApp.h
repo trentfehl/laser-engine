@@ -7,16 +7,16 @@
 
 class ofApp : public ofBaseApp{
 
-    public:
+   public:
+	bool keyIsDown[255];  
+  
 	void setup();
 	void update();
 	void draw();
 	void exit();
 
-	// Geometry
-	void drawHypotrochoid();
-
 	void keyPressed(int key);
+	void keyReleased(int key);
 
 	ofxLaser::Manager laser;
 	ofxLaser::DacEtherdream dac;
@@ -26,12 +26,23 @@ class ofApp : public ofBaseApp{
 	ofParameter<ofColor> color;
 
 	float elapsedTime; 
+	int laserRadius;
 	int laserWidth;
 	int laserHeight;
+	ofVec3f origin;
 
+	int step;
+	int rotation;
+	ofVec3f rotation_vector;
+
+	// Hypotrocoid
+	void drawHypotrochoid();
 	int r;
 	int R;
 	int d;
-
 	int factor_r;
+
+	// Rose
+	void drawRose();
+	int k;
 };
