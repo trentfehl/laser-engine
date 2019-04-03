@@ -25,6 +25,7 @@ Project{
             'ofxSvg',
             'ofxNetwork',
             'ofxPoco',
+            'ofxFft',
         ]
 
         // additional flags for the project. the of module sets some

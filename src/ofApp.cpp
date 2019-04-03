@@ -5,7 +5,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    // Size	
+    // Size window.
     laserWidth = 800;
     laserHeight = 800;
     laser.setup(laserWidth, laserHeight);
@@ -21,20 +21,25 @@ void ofApp::setup(){
     // Setup GUI
     laser.initGui();
     cgui.setup("color panel", "colors.xml", ofGetWidth()-240, 700 );
-    cgui.add(color.set("color", ofColor(0, 255, 0), ofColor(0), ofColor(255)));
+    cgui.add(color.set("color", ofColor(190, 0, 190), ofColor(0), ofColor(255)));
 
-    // Config
+    // Rendering.
     step = 10; // * M_PI
     rotation = 0; // Radians
     rotation_vector.set(0, 0, 1);
-
-    // Hypotrochoid setup.
     factor_r = 2;
     R = round(laserRadius*0.80);
     d = round(laserRadius*0.80);
-
-    // Rose setup.
     k = 5;
+
+    settings.sampleRate = 44100;
+    settings.bufferSize = 256;
+    settings.numBuffers = 4;
+    settings.numOutputChannels = 2;
+    settings.numInputChannels = 2;
+    ofSoundStreamSetup(settings);
+
+    fft = ofxFft::create(settings.bufferSize, OF_FFT_WINDOW_HAMMING);
 }
 
 //--------------------------------------------------------------
@@ -110,6 +115,9 @@ void ofApp::update(){
         std::cout << "factor_r: " << factor_r << std::endl;
     }  
 
+    soundMutex.lock();
+    soundMutex.unlock();
+
     // prepares laser manager to receive new points
     laser.update();
 
@@ -180,6 +188,23 @@ void ofApp::keyPressed(int key){
 void ofApp::keyReleased(int key) {  
        keyIsDown[key] = false;  
 }  
+
+//--------------------------------------------------------------
+void ofApp::audioIn(ofSoundBuffer &inBuffer) {
+	for(int i = 0; i < inBuffer.size(); i += 2) {
+            // Stuff
+	}
+
+    soundMutex.lock();
+    soundMutex.unlock();
+}
+
+//--------------------------------------------------------------
+void ofApp::audioOut(ofSoundBuffer &outBuffer) {
+	for(int i = 0; i < outBuffer.size(); i += 2) {
+            // Stuff
+	}
+}
 
 //--------------------------------------------------------------
 void ofApp::exit(){ 

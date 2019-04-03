@@ -4,6 +4,7 @@
 #include "ofxLaserManager.h"
 #include "ofxLaserDacEtherdream.h"
 #include "ofxGui.h"
+#include "ofxFft.h"
 
 class ofApp : public ofBaseApp{
 
@@ -18,12 +19,19 @@ class ofApp : public ofBaseApp{
 	void keyPressed(int key);
 	void keyReleased(int key);
 
+	void audioIn(ofSoundBuffer &inBuffer);
+	void audioOut(ofSoundBuffer &outBuffer);
+
 	ofxLaser::Manager laser;
 	ofxLaser::DacEtherdream dac;
 
 	std::vector<ofPolyline> polyLines;
 	ofxPanel cgui;
 	ofParameter<ofColor> color;
+
+	ofxFft* fft;
+	ofMutex soundMutex;
+	ofSoundStreamSettings settings;
 
 	float elapsedTime; 
 	int laserRadius;
