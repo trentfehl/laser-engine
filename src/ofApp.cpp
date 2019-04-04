@@ -5,7 +5,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    // Size	
+    // Size window.
     laserWidth = 800;
     laserHeight = 800;
     laser.setup(laserWidth, laserHeight);
@@ -21,19 +21,27 @@ void ofApp::setup(){
     // Setup GUI
     laser.initGui();
     cgui.setup("color panel", "colors.xml", ofGetWidth()-240, 700 );
-    cgui.add(color.set("color", ofColor(0, 255, 0), ofColor(0), ofColor(255)));
+    cgui.add(color.set("color", ofColor(190, 0, 190), ofColor(0), ofColor(255)));
 
-    // Config
+    // Rendering.
     step = 10; // * M_PI
     quat.set(0, 0, 0, 1);
-
-    // Hypotrochoid setup.
     factor_r = 2;
     R = round(laserRadius*0.80);
     d = round(laserRadius*0.80);
-
-    // Rose setup.
     k = 5;
+
+    settings.sampleRate = 44100;
+    settings.bufferSize = 256;
+    settings.numBuffers = 4;
+    settings.numOutputChannels = 2;
+    settings.numInputChannels = 2;
+    ofSoundStreamSetup(settings);
+
+    fft = ofxFft::create(settings.bufferSize, OF_FFT_WINDOW_HAMMING);
+    drawBins.resize(fft->getBinSize());
+    middleBins.resize(fft->getBinSize());
+    audioBins.resize(fft->getBinSize());
 }
 
 //--------------------------------------------------------------
@@ -129,7 +137,10 @@ void ofApp::draw(){
     ofDrawRectangle(0,0,laserWidth, laserHeight);
     
     // drawHypotrochoid();
-    drawRose();
+    // drawRose();
+    soundMutex.lock();
+    drawBins = middleBins;
+    soundMutex.unlock();
 
     // sends points to the DAC
     laser.send();
@@ -179,13 +190,50 @@ void ofApp::drawRose(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-   keyIsDown[key] = true;  
+    keyIsDown[key] = true;  
 } 
 
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key) {  
-       keyIsDown[key] = false;  
+    keyIsDown[key] = false;  
 }  
+
+//--------------------------------------------------------------
+void ofApp::audioIn(ofSoundBuffer &inBuffer) {
+    float maxValue = 0;
+    for(int i = 0; i < inBuffer.size; i++) {
+	    if(abs(input[i]) > maxValue) {
+		    maxValue = abs(input[i]);
+	    }
+    }
+    for(int i = 0; i < inBuffer.size; i++) {
+	    input[i] /= maxValue;
+    }
+    
+    float* curFft = fft->getAmplitude();
+    memcpy(&audioBins[0], curFft, sizeof(float) * fft->getBinSize());
+    
+    maxValue = 0;
+    for(int i = 0; i < fft->getBinSize(); i++) {
+	    if(abs(audioBins[i]) > maxValue) {
+		    maxValue = abs(audioBins[i]);
+	    }
+    }
+    for(int i = 0; i < fft->getBinSize(); i++) {
+	    audioBins[i] /= maxValue;
+    }
+    
+    soundMutex.lock();
+    middleBins = audioBins;
+    soundMutex.unlock();
+}
+
+//--------------------------------------------------------------
+void ofApp::audioOut(ofSoundBuffer &outBuffer) {
+	for(int i = 0; i < outBuffer.size(); i += 2) {
+            // Stuff
+	}
+}
 
 //--------------------------------------------------------------
 void ofApp::exit(){ 

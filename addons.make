@@ -5,3 +5,4 @@ ofxXmlSettings
 ofxSvg
 ofxNetwork
 ofxPoco
+ofxFft
