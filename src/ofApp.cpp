@@ -40,6 +40,9 @@ void ofApp::setup(){
     ofSoundStreamSetup(settings);
 
     fft = ofxFft::create(settings.bufferSize, OF_FFT_WINDOW_HAMMING);
+    drawBins.resize(fft->getBinSize());
+    middleBins.resize(fft->getBinSize());
+    audioBins.resize(fft->getBinSize());
 }
 
 //--------------------------------------------------------------
@@ -115,9 +118,6 @@ void ofApp::update(){
         std::cout << "factor_r: " << factor_r << std::endl;
     }  
 
-    soundMutex.lock();
-    soundMutex.unlock();
-
     // prepares laser manager to receive new points
     laser.update();
 
@@ -132,7 +132,10 @@ void ofApp::draw(){
     ofDrawRectangle(0,0,laserWidth, laserHeight);
     
     // drawHypotrochoid();
-    drawRose();
+    // drawRose();
+    soundMutex.lock();
+    drawBins = middleBins;
+    soundMutex.unlock();
 
     // sends points to the DAC
     laser.send();
@@ -181,21 +184,41 @@ void ofApp::drawRose(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-   keyIsDown[key] = true;  
+    keyIsDown[key] = true;  
 } 
 
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key) {  
-       keyIsDown[key] = false;  
+    keyIsDown[key] = false;  
 }  
 
 //--------------------------------------------------------------
 void ofApp::audioIn(ofSoundBuffer &inBuffer) {
-	for(int i = 0; i < inBuffer.size(); i += 2) {
-            // Stuff
-	}
-
+    float maxValue = 0;
+    for(int i = 0; i < inBuffer.size; i++) {
+	    if(abs(input[i]) > maxValue) {
+		    maxValue = abs(input[i]);
+	    }
+    }
+    for(int i = 0; i < inBuffer.size; i++) {
+	    input[i] /= maxValue;
+    }
+    
+    float* curFft = fft->getAmplitude();
+    memcpy(&audioBins[0], curFft, sizeof(float) * fft->getBinSize());
+    
+    maxValue = 0;
+    for(int i = 0; i < fft->getBinSize(); i++) {
+	    if(abs(audioBins[i]) > maxValue) {
+		    maxValue = abs(audioBins[i]);
+	    }
+    }
+    for(int i = 0; i < fft->getBinSize(); i++) {
+	    audioBins[i] /= maxValue;
+    }
+    
     soundMutex.lock();
+    middleBins = audioBins;
     soundMutex.unlock();
 }
 
