@@ -25,8 +25,7 @@ void ofApp::setup(){
 
     // Rendering.
     step = 10; // * M_PI
-    rotation = 0; // Radians
-    rotation_vector.set(0, 0, 1);
+    quat.set(0, 0, 0, 1);
     factor_r = 2;
     R = round(laserRadius*0.80);
     d = round(laserRadius*0.80);
@@ -56,30 +55,36 @@ void ofApp::update(){
 
     // Rotations
     if(keyIsDown['x'] && keyIsDown[OF_KEY_UP]) {
-	rotation_vector.set(1, 0, 0);
-        rotation++;
+        x_inc++;
+        x_inc = min(x_inc, 100);
+	quat.set(x_inc*0.01, 0, 0, 1);
     }
     if(keyIsDown['x'] && keyIsDown[OF_KEY_DOWN]) {
-	rotation_vector.set(1, 0, 0);
-        rotation--;
+        x_inc--;
+        x_inc = max(x_inc, 0);
+	quat.set(x_inc*0.01, 0, 0, 1);
     }
 
     if(keyIsDown['y'] && keyIsDown[OF_KEY_UP]) {
-	rotation_vector.set(0, 1, 0);
-        rotation++;
+        y_inc++;
+        y_inc = min(y_inc, 100);
+	quat.set(0, y_inc*0.01, 0, 1);
     }
     if(keyIsDown['y'] && keyIsDown[OF_KEY_DOWN]) {
-	rotation_vector.set(0, 1, 0);
-        rotation--;
+        y_inc--;
+        y_inc = max(y_inc, 0);
+	quat.set(0, y_inc*0.01, 0, 1);
     }
 
     if(keyIsDown['z'] && keyIsDown[OF_KEY_UP]) {
-	rotation_vector.set(0, 0, 1);
-        rotation++;
+        z_inc++;
+        z_inc = min(z_inc, 100);
+	quat.set(0, 0, z_inc*0.01, 1);
     }
     if(keyIsDown['z'] && keyIsDown[OF_KEY_DOWN]) {
-	rotation_vector.set(0, 0, 1);
-        rotation--;
+        z_inc--;
+        z_inc = max(z_inc, 0);
+	quat.set(0, 0, z_inc*0.01, 1);
     }
 
     // Modify step size
@@ -147,7 +152,6 @@ void ofApp::draw(){
 //--------------------------------------------------------------
 void ofApp::drawHypotrochoid(){
     ofPolyline line;
-    ofVec3f vec;
 
     r = round(factor_r*R*0.1);
 
@@ -155,11 +159,12 @@ void ofApp::drawHypotrochoid(){
     while (i < 2*M_PI*(r/__gcd(r,R))) { 
 	float x = (R - r)*cos(i) + d*cos((R-r)*i/r);
 	float y = (R - r)*sin(i) + d*sin((R-r)*i/r);
-        vec = ofVec3f(x,y,0).rotateRad(rotation*0.01*M_PI, rotation_vector);
-	line.addVertex(vec + origin);
+	line.addVertex(ofVec3f(x,y,0));
 	i+=step*0.001*M_PI;
     }
     line.close(); // close the shape
+    line.rotateQuat(quat);
+    line.translate(origin);
 
     laser.drawPoly(line, color);
 }
@@ -173,11 +178,12 @@ void ofApp::drawRose(){
     while (i < 2*M_PI) { 
 	float x = cos(k*i)*cos(i)*laserRadius;
 	float y = cos(k*i)*sin(i)*laserRadius;
-        vec = ofVec3f(x,y,0).rotateRad(rotation*0.01*M_PI, rotation_vector);
-	line.addVertex(vec + origin);
+	line.addVertex(ofVec3f(x,y,0));
 	i+=step*0.001*M_PI;
     }
     line.close(); // close the shape
+    line.rotateQuat(quat);
+    line.translate(origin);
 
     laser.drawPoly(line, color);
 }

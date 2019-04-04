@@ -41,8 +41,10 @@ class ofApp : public ofBaseApp{
 	ofVec3f origin;
 
 	int step;
-	int rotation;
-	ofVec3f rotation_vector;
+	int x_inc;
+	int y_inc;
+	int z_inc;
+	ofQuaternion quat;
 
 	// Hypotrocoid
 	void drawHypotrochoid();
