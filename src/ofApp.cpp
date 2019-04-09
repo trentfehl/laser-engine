@@ -5,6 +5,35 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+    // Setup sound.
+    soundStream.printDeviceList();
+
+    int bufferSize = 256;
+
+    left.assign(bufferSize, 0.0);
+    right.assign(bufferSize, 0.0);
+    volHistory.assign(400, 0.0);
+
+    bufferCounter = 0;
+    drawCounter	= 0;
+    smoothedVol = 0.0;
+    scaledVol = 0.0;
+
+
+    ofSoundStreamSettings settings;
+
+    auto devices = soundStream.getMatchingDevices("default");
+    if(!devices.empty()){
+	settings.setInDevice(devices[0]);
+    }
+
+    settings.setInListener(this);
+    settings.sampleRate = 44100;
+    settings.numOutputChannels = 2;
+    settings.numInputChannels = 2;
+    settings.bufferSize = bufferSize;
+    soundStream.setup(settings);
+
     // Size window.
     laserWidth = 800;
     laserHeight = 800;
@@ -30,24 +59,23 @@ void ofApp::setup(){
     R = round(laserRadius*0.80);
     d = round(laserRadius*0.80);
     k = 5;
-
-    settings.sampleRate = 44100;
-    settings.bufferSize = 256;
-    settings.numBuffers = 4;
-    settings.numOutputChannels = 2;
-    settings.numInputChannels = 2;
-    ofSoundStreamSetup(settings);
-
-    fft = ofxFft::create(settings.bufferSize, OF_FFT_WINDOW_HAMMING);
-    drawBins.resize(fft->getBinSize());
-    middleBins.resize(fft->getBinSize());
-    audioBins.resize(fft->getBinSize());
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
     float deltaTime = ofClamp(ofGetLastFrameTime(), 0, 0.2);
     elapsedTime+=deltaTime;
+
+    //lets scale the vol up to a 0-1 range 
+    scaledVol = ofMap(smoothedVol, 0.0, 0.17, 0.0, 1.0, true);
+
+    //lets record the volume into an array
+    volHistory.push_back(scaledVol);
+
+    //if we are bigger the the size we want to record - lets drop the oldest value
+    if( volHistory.size() >= 400 ){
+	    volHistory.erase(volHistory.begin(), volHistory.begin()+1);
+    }
 
     if(keyIsDown['c']) {
 	polyLines.clear();
@@ -137,10 +165,7 @@ void ofApp::draw(){
     ofDrawRectangle(0,0,laserWidth, laserHeight);
     
     // drawHypotrochoid();
-    // drawRose();
-    soundMutex.lock();
-    drawBins = middleBins;
-    soundMutex.unlock();
+    drawRose();
 
     // sends points to the DAC
     laser.send();
@@ -163,6 +188,7 @@ void ofApp::drawHypotrochoid(){
 	i+=step*0.001*M_PI;
     }
     line.close(); // close the shape
+    line.scale(scaledVol, scaledVol);
     line.rotateQuat(quat);
     line.translate(origin);
 
@@ -182,6 +208,7 @@ void ofApp::drawRose(){
 	i+=step*0.001*M_PI;
     }
     line.close(); // close the shape
+    line.scale(scaledVol, scaledVol);
     line.rotateQuat(quat);
     line.translate(origin);
 
@@ -200,39 +227,33 @@ void ofApp::keyReleased(int key) {
 
 //--------------------------------------------------------------
 void ofApp::audioIn(ofSoundBuffer &inBuffer) {
-    float maxValue = 0;
-    for(int i = 0; i < inBuffer.size; i++) {
-	    if(abs(input[i]) > maxValue) {
-		    maxValue = abs(input[i]);
-	    }
+    float curVol = 0.0;
+
+    // samples are "interleaved"
+    int numCounted = 0;	
+
+    for (size_t i = 0; i < inBuffer.getNumFrames(); i++){
+	    left[i]	= inBuffer[i*2]*0.5;
+	    right[i]	= inBuffer[i*2+1]*0.5;
+
+	    curVol += left[i] * left[i];
+	    curVol += right[i] * right[i];
+	    numCounted+=2;
     }
-    for(int i = 0; i < inBuffer.size; i++) {
-	    input[i] /= maxValue;
-    }
-    
-    float* curFft = fft->getAmplitude();
-    memcpy(&audioBins[0], curFft, sizeof(float) * fft->getBinSize());
-    
-    maxValue = 0;
-    for(int i = 0; i < fft->getBinSize(); i++) {
-	    if(abs(audioBins[i]) > maxValue) {
-		    maxValue = abs(audioBins[i]);
-	    }
-    }
-    for(int i = 0; i < fft->getBinSize(); i++) {
-	    audioBins[i] /= maxValue;
-    }
-    
-    soundMutex.lock();
-    middleBins = audioBins;
-    soundMutex.unlock();
+
+    // calculate RMS
+    curVol /= (float)numCounted;
+    curVol = sqrt( curVol );
+
+    smoothedVol *= 0.93;
+    smoothedVol += 0.07 * curVol;
+
+    bufferCounter++;
 }
 
 //--------------------------------------------------------------
 void ofApp::audioOut(ofSoundBuffer &outBuffer) {
-	for(int i = 0; i < outBuffer.size(); i += 2) {
-            // Stuff
-	}
+	// Stuff
 }
 
 //--------------------------------------------------------------

@@ -29,10 +29,18 @@ class ofApp : public ofBaseApp{
 	ofxPanel cgui;
 	ofParameter<ofColor> color;
 
+	ofSoundStream soundStream;
 	ofSoundStreamSettings settings;
-	ofxFft* fft;
-	ofMutex soundMutex;
-	vector<float> drawBins, middleBins, audioBins;
+
+	vector <float> left;
+	vector <float> right;
+	vector <float> volHistory;
+	
+	int bufferCounter;
+	int drawCounter;
+	
+	float smoothedVol;
+	float scaledVol;
 
 	float elapsedTime; 
 	int laserRadius;
