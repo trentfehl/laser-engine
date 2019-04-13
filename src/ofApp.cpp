@@ -19,7 +19,6 @@ void ofApp::setup(){
     smoothedVol = 0.0;
     scaledVol = 0.0;
 
-
     ofSoundStreamSettings settings;
 
     auto devices = soundStream.getMatchingDevices("default");
@@ -213,6 +212,78 @@ void ofApp::drawRose(){
     line.translate(origin);
 
     laser.drawPoly(line, color);
+}
+
+//--------------------------------------------------------------
+void ofApp::updateControlPoints(){
+   if (points[0].x > laserWidth) {
+       move_x *= -1;
+   }
+   else if (points[0].x < 0) {
+       move_x *= -1;
+   }
+   if (points[0].y > laserHeight) {
+       move_y *= -1;
+   }
+   else if (points[0].y < 0) {
+       move_y *= -1;
+   }
+
+   points[0].x += move_x;
+   points[0].y += move_y;
+
+   for (int i=1; i<points.size(); i++) {
+       if (points[i].x >= laserWidth) {
+           move_theta *= -1;
+       }
+       else if (points[i].x <= 0) {
+           move_theta *= -1;
+       }
+       if (points[i].y >= laserHeight) {
+           move_theta *= -1;
+       }
+       else if (points[i].y <= 0) {
+           move_theta *= -1;
+       }
+
+       points[i].x = points[i].radius * cos(move_theta) + points[i-1].x;
+       points[i].y = points[i].radius * sin(move_theta) + points[i-1].y;
+   }
+}
+
+//--------------------------------------------------------------
+void ofApp::updateParameters(){
+   // http://demonstrations.wolfram.com/GlobalBSplineCurveInterpolation/
+
+   // Calculate t parameters.
+   d = 0;
+   for (int i=1; i<points.size(); i++) {
+	t[i] = sqrt(pow(points[i].x - points[i-1].x, 2) +  
+                    pow(points[i].y - points[i-1].y, 2)); 
+        d += t[i];
+   }
+
+   t[0] = 0;
+   t[1] = 1;
+
+   for (int i=1; i<(t.size()-1); i++) {
+       t[i] = t[i-1] + t[i]/d;
+   }
+       
+   // Calculate u parameters.
+   m = pow(points.size(), 2);
+   for (int j=0; j<=p; j++) {
+       u[j] = 0;
+   }
+   for (int j=(m-p); j<=m; j++) {
+       u[j] = 1;
+   }
+   for (int j=(p+1); j<(m-p); j++) {
+       for (int i=0; i<(j-p); i++) {
+           u[j] += t[i];
+       }
+       u[j] /= p;
+   }
 }
 
 //--------------------------------------------------------------
