@@ -2,37 +2,12 @@
 #include <math.h>
 #include <cmath>
 #include <algorithm>
+#include <stdlib.h>
+#include <time.h>
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    // Setup sound.
-    soundStream.printDeviceList();
-
-    int bufferSize = 256;
-
-    left.assign(bufferSize, 0.0);
-    right.assign(bufferSize, 0.0);
-    volHistory.assign(400, 0.0);
-
-    bufferCounter = 0;
-    drawCounter	= 0;
-    smoothedVol = 0.0;
-    scaledVol = 0.0;
-
-
-    ofSoundStreamSettings settings;
-
-    auto devices = soundStream.getMatchingDevices("default");
-    if(!devices.empty()){
-	settings.setInDevice(devices[0]);
-    }
-
-    settings.setInListener(this);
-    settings.sampleRate = 44100;
-    settings.numOutputChannels = 2;
-    settings.numInputChannels = 2;
-    settings.bufferSize = bufferSize;
-    soundStream.setup(settings);
+    ofSetFrameRate(40);
 
     // Size window.
     laserWidth = 800;
@@ -52,13 +27,9 @@ void ofApp::setup(){
     cgui.setup("color panel", "colors.xml", ofGetWidth()-240, 700 );
     cgui.add(color.set("color", ofColor(190, 0, 190), ofColor(0), ofColor(255)));
 
-    // Rendering.
-    step = 10; // * M_PI
-    quat.set(0, 0, 0, 1);
-    factor_r = 2;
-    R = round(laserRadius*0.80);
-    d = round(laserRadius*0.80);
-    k = 5;
+    setupSound();
+    setupControlPoints();
+    setupParameters();
 }
 
 //--------------------------------------------------------------
@@ -77,80 +48,6 @@ void ofApp::update(){
 	    volHistory.erase(volHistory.begin(), volHistory.begin()+1);
     }
 
-    if(keyIsDown['c']) {
-	polyLines.clear();
-    }
-
-    // Rotations
-    if(keyIsDown['x'] && keyIsDown[OF_KEY_UP]) {
-        x_inc++;
-        x_inc = min(x_inc, 100);
-	quat.set(x_inc*0.01, 0, 0, 1);
-    }
-    if(keyIsDown['x'] && keyIsDown[OF_KEY_DOWN]) {
-        x_inc--;
-        x_inc = max(x_inc, 0);
-	quat.set(x_inc*0.01, 0, 0, 1);
-    }
-
-    if(keyIsDown['y'] && keyIsDown[OF_KEY_UP]) {
-        y_inc++;
-        y_inc = min(y_inc, 100);
-	quat.set(0, y_inc*0.01, 0, 1);
-    }
-    if(keyIsDown['y'] && keyIsDown[OF_KEY_DOWN]) {
-        y_inc--;
-        y_inc = max(y_inc, 0);
-	quat.set(0, y_inc*0.01, 0, 1);
-    }
-
-    if(keyIsDown['z'] && keyIsDown[OF_KEY_UP]) {
-        z_inc++;
-        z_inc = min(z_inc, 100);
-	quat.set(0, 0, z_inc*0.01, 1);
-    }
-    if(keyIsDown['z'] && keyIsDown[OF_KEY_DOWN]) {
-        z_inc--;
-        z_inc = max(z_inc, 0);
-	quat.set(0, 0, z_inc*0.01, 1);
-    }
-
-    // Modify step size
-    if(keyIsDown['s'] && keyIsDown[OF_KEY_UP]) {  
-        step++;
-        step = min(step, 100);
-        std::cout << "step: " << step << std::endl;
-    }  
-    if(keyIsDown['s'] && keyIsDown[OF_KEY_DOWN]) {  
-        step--;
-        step = max(step, 1);
-        std::cout << "step: " << step << std::endl;
-    }  
-
-    // Modify 'k' of Rose
-    if(keyIsDown['k'] && keyIsDown[OF_KEY_UP]) {  
-        k++;
-        k = min(k, 100);
-        std::cout << "k: " << k << std::endl;
-    }  
-    if(keyIsDown['k'] && keyIsDown[OF_KEY_DOWN]) {  
-        k--;
-        k = max(k, 1);
-        std::cout << "k: " << k << std::endl;
-    }  
-
-    // Modify 'factor_r' of Hypotrochoid
-    if(keyIsDown['r'] && keyIsDown[OF_KEY_UP]) {  
-        factor_r++;
-        factor_r = min(factor_r, 800);
-        std::cout << "factor_r: " << factor_r << std::endl;
-    }  
-    if(keyIsDown['r'] && keyIsDown[OF_KEY_DOWN]) {  
-        factor_r--;
-        factor_r = max(factor_r, 1);
-        std::cout << "factor_r: " << factor_r << std::endl;
-    }  
-
     // prepares laser manager to receive new points
     laser.update();
 
@@ -164,8 +61,24 @@ void ofApp::draw(){
     ofSetLineWidth(1);
     ofDrawRectangle(0,0,laserWidth, laserHeight);
     
-    // drawHypotrochoid();
-    drawRose();
+    updateControlPoints();
+
+    ofPolyline line;
+
+    for (auto point : points) {
+        line.addVertex(point.x, point.y, 0);
+    }
+
+    line.close();
+    line.scale(laserRadius*0.25, laserRadius*0.25);
+    line.translate(origin);
+    laser.drawPoly(line, color);
+
+    ofPolyline circle;
+    circle.arc(ofPoint(0,0,0),1,1,0,360);
+    circle.scale(laserRadius*0.25, laserRadius*0.25);
+    circle.translate(origin);
+    laser.drawPoly(circle, ofColor(255,0,0));
 
     // sends points to the DAC
     laser.send();
@@ -175,44 +88,47 @@ void ofApp::draw(){
 }
 
 //--------------------------------------------------------------
-void ofApp::drawHypotrochoid(){
-    ofPolyline line;
+void ofApp::updateControlPoints(){
 
-    r = round(factor_r*R*0.1);
+    for (std::size_t i=0, max=points.size(); i!=max; i++) {
 
-    float i = 0;
-    while (i < 2*M_PI*(r/__gcd(r,R))) { 
-	float x = (R - r)*cos(i) + d*cos((R-r)*i/r);
-	float y = (R - r)*sin(i) + d*sin((R-r)*i/r);
-	line.addVertex(ofVec3f(x,y,0));
-	i+=step*0.001*M_PI;
+        float point_step = 0.01;
+
+        float dist = sqrt(pow(points[i].x, 2) + pow(points[i].y, 2));
+
+        if (dist >= 1) { 
+            point_step = 0.07;
+
+            ofVec3f normal = {
+                points[i].x,
+                points[i].y,
+                0,
+            };
+
+            ofVec3f para_to_tangent = normal.dot(points[i].h) * normal;
+            ofVec3f perp_to_tangent = points[i].h - para_to_tangent;
+                
+            // Invert parallel component for reflection.
+            points[i].h = perp_to_tangent - para_to_tangent;
+
+            if (points[i].h[0] > 0) {
+                points[i].direction = -1;
+                points[i].angle = atan(points[i].h[1]/points[i].h[0]) * 180 / M_PI;
+            } 
+            else if (points[i].h[0] < 0) {
+                points[i].direction = 1;
+                points[i].angle = atan(points[i].h[1]/points[i].h[0]) * 180 / M_PI;
+            } else {
+                // Don't calculate angle if X component is zero.
+                continue; 
+            }
+
+            points[i].angle += rand() % 2 + 0;
+        }
+
+        points[i].x += cos(points[i].angle*M_PI/180) * point_step * points[i].direction;
+        points[i].y += sin(points[i].angle*M_PI/180) * point_step * points[i].direction;
     }
-    line.close(); // close the shape
-    line.scale(scaledVol, scaledVol);
-    line.rotateQuat(quat);
-    line.translate(origin);
-
-    laser.drawPoly(line, color);
-}
-
-//--------------------------------------------------------------
-void ofApp::drawRose(){
-    ofPolyline line;
-    ofVec3f vec;
-
-    float i = 0;
-    while (i < 2*M_PI) { 
-	float x = cos(k*i)*cos(i)*laserRadius;
-	float y = cos(k*i)*sin(i)*laserRadius;
-	line.addVertex(ofVec3f(x,y,0));
-	i+=step*0.001*M_PI;
-    }
-    line.close(); // close the shape
-    line.scale(scaledVol, scaledVol);
-    line.rotateQuat(quat);
-    line.translate(origin);
-
-    laser.drawPoly(line, color);
 }
 
 //--------------------------------------------------------------
@@ -254,6 +170,110 @@ void ofApp::audioIn(ofSoundBuffer &inBuffer) {
 //--------------------------------------------------------------
 void ofApp::audioOut(ofSoundBuffer &outBuffer) {
 	// Stuff
+}
+
+//--------------------------------------------------------------
+void ofApp::setupSound() {
+    soundStream.printDeviceList();
+
+    int bufferSize = 256;
+
+    left.assign(bufferSize, 0.0);
+    right.assign(bufferSize, 0.0);
+    volHistory.assign(400, 0.0);
+
+    bufferCounter = 0;
+    drawCounter	= 0;
+    smoothedVol = 0.0;
+    scaledVol = 0.0;
+
+    ofSoundStreamSettings settings;
+
+    auto devices = soundStream.getMatchingDevices("default");
+    if(!devices.empty()){
+	settings.setInDevice(devices[0]);
+    }
+
+    settings.setInListener(this);
+    settings.sampleRate = 44100;
+    settings.numOutputChannels = 2;
+    settings.numInputChannels = 2;
+    settings.bufferSize = bufferSize;
+    soundStream.setup(settings);
+}
+
+//--------------------------------------------------------------
+void ofApp::setupControlPoints(){ 
+    // Set number of control points.
+    points.resize(5);
+
+    // Initialize random seed.
+    srand (time(NULL));
+
+    // Initialize points randomly inside unit circle.
+    for (std::size_t i=0, max=points.size(); i!=max; i++) {
+        float r = (rand() % 99 + 0)*0.01;
+        float theta = rand() % 360 + 0;
+        points[i].x = r*cos(theta*M_PI/180); 
+        points[i].y = r*sin(theta*M_PI/180); 
+
+        // Initialize heading.
+        points[i].h = {
+            cos(rand() % 360 + 0),
+            sin(rand() % 360 + 0),
+            0,
+        };
+
+        if (points[i].h[1]*points[i].h[0] > 0) {
+            points[i].direction = 1;
+            points[i].angle = atan(points[i].h[1]/points[i].h[0]) * 180 / M_PI;
+        } 
+        if (points[i].h[1]*points[i].h[0] < 0) {
+            points[i].direction = -1;
+            points[i].angle = atan(points[i].h[1]/points[i].h[0]) * 180 / M_PI;
+        }
+    }
+}
+
+//--------------------------------------------------------------
+void ofApp::setupParameters(){
+   // With equal_length method and fixed lengths between knots, only
+   // solve for parameters once.
+   // http://demonstrations.wolfram.com/GlobalBSplineCurveInterpolation/
+
+   float d = 0.0f;
+   t.resize(points.size());
+
+   for (int i=1; i<points.size(); i++) {
+	t[i] = sqrt(pow(points[i].x - points[i-1].x, 2) +  
+                    pow(points[i].y - points[i-1].y, 2));
+        d += t[i];
+   }
+
+   t[0] = 0.0f;
+   t[1] = 1.0f;
+
+   for (int i=1; i<(t.size()-1); i++) {
+       t[i] = t[i-1] + t[i]/d;
+   }
+
+   p = 3; // Power.
+
+   m = pow(points.size(), 2);
+   u.resize(m);
+
+   for (int j=0; j<=p; j++) {
+       u[j] = 0.0f;
+   }
+   for (int j=(p+1); j<(m-p); j++) {
+       for (int i=0; i<(j-p); i++) {
+           u[j] += t[i];
+       }
+       u[j] /= p;
+   }
+   for (int j=(m-p); j<m; j++) {
+       u[j] = 1.0f;
+   }
 }
 
 //--------------------------------------------------------------

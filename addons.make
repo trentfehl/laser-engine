@@ -6,3 +6,4 @@ ofxSvg
 ofxNetwork
 ofxPoco
 ofxFft
+ofxEigen
