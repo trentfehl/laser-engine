@@ -4,7 +4,7 @@
 #include "ofxLaserManager.h"
 #include "ofxLaserDacEtherdream.h"
 #include "ofxGui.h"
-#include "ofxFft.h"
+#include "ofxEigen.h"
 
 class ofApp : public ofBaseApp{
 
@@ -15,6 +15,10 @@ class ofApp : public ofBaseApp{
 	void update();
 	void draw();
 	void exit();
+	void setupSound();
+	void setupParameters();
+	void setupControlPoints();
+	void updateControlPoints();
 
 	void keyPressed(int key);
 	void keyReleased(int key);
@@ -26,15 +30,15 @@ class ofApp : public ofBaseApp{
 	ofxLaser::DacEtherdream dac;
 
 	std::vector<ofPolyline> polyLines;
-	ofxPanel cgui;
 	ofParameter<ofColor> color;
+	ofxPanel cgui;
 
 	ofSoundStream soundStream;
 	ofSoundStreamSettings settings;
 
-	vector <float> left;
-	vector <float> right;
-	vector <float> volHistory;
+	vector<float> left;
+	vector<float> right;
+	vector<float> volHistory;
 	
 	int bufferCounter;
 	int drawCounter;
@@ -43,25 +47,24 @@ class ofApp : public ofBaseApp{
 	float scaledVol;
 
 	float elapsedTime; 
-	int laserRadius;
 	int laserWidth;
 	int laserHeight;
+	int laserRadius;
 	ofVec3f origin;
 
 	int step;
-	int x_inc;
-	int y_inc;
-	int z_inc;
 	ofQuaternion quat;
 
-	// Hypotrocoid
-	void drawHypotrochoid();
-	int r;
-	int R;
-	int d;
-	int factor_r;
-
-	// Rose
-	void drawRose();
-	int k;
+	struct ControlPoint {
+	    float x;
+	    float y;
+	    float angle;
+	    float direction;
+	    ofVec3f h; // Heading.
+	};
+	vector<ControlPoint> points;
+	vector<float> t;
+	vector<float> u;
+	int m; // Square of points.size()
+	int p; // Power.
 };
