@@ -5,57 +5,42 @@
 #include "ofxLaserDacEtherdream.h"
 #include "ofxGui.h"
 #include "ofxEigen.h"
+#include "ofxBPMDetector.h"
 
 class ofApp : public ofBaseApp{
 
    public:
-	bool keyIsDown[255];  
-  
 	void setup();
 	void update();
 	void draw();
 	void exit();
-	void setupSound();
 	void setupParameters();
 	void setupControlPoints();
 	void updateControlPoints();
-	float vectorMagnitude(std::vector<float> v);
 
 	void keyPressed(int key);
-	void keyReleased(int key);
-
-	void audioIn(ofSoundBuffer &inBuffer);
-	void audioOut(ofSoundBuffer &outBuffer);
 
 	ofxLaser::Manager laser;
 	ofxLaser::DacEtherdream dac;
 
-	std::vector<ofPolyline> polyLines;
 	ofParameter<ofColor> color;
 	ofxPanel cgui;
 
 	ofSoundStream soundStream;
 	ofSoundStreamSettings settings;
-
-	vector<float> left;
-	vector<float> right;
-	vector<float> volHistory;
-	
-	int bufferCounter;
-	int drawCounter;
-	
-	float smoothedVol;
-	float scaledVol;
+	ofxBPMDetector bpmDetector;
+	void audioReceived(float *input, int bufferSize, int nChannels);
 
 	float elapsedTime; 
-	int laserWidth;
-	int laserHeight;
 	int laserRadius;
-	ofVec3f origin;
+	int laserDiameter;
+	glm::vec3 origin;
 
 	int step;
 	ofQuaternion quat;
 
+	bool showPolygon;
+	bool showBoundary;
 	struct ControlPoint {
 	    glm::vec3 p; // Position.
 	    glm::vec3 h; // Heading.

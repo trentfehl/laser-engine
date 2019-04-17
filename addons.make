@@ -7,3 +7,4 @@ ofxNetwork
 ofxPoco
 ofxFft
 ofxEigen
+ofxBPMDetector
