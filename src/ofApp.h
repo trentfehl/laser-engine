@@ -19,6 +19,7 @@ class ofApp : public ofBaseApp{
 	void setupParameters();
 	void setupControlPoints();
 	void updateControlPoints();
+	float vectorMagnitude(std::vector<float> v);
 
 	void keyPressed(int key);
 	void keyReleased(int key);
@@ -56,11 +57,9 @@ class ofApp : public ofBaseApp{
 	ofQuaternion quat;
 
 	struct ControlPoint {
-	    float x;
-	    float y;
-	    float angle;
-	    float direction;
-	    ofVec3f h; // Heading.
+	    glm::vec3 p; // Position.
+	    glm::vec3 h; // Heading.
+	    int direction;
 	};
 	vector<ControlPoint> points;
 	vector<float> t;

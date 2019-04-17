@@ -44,13 +44,11 @@ void ofApp::update(){
     volHistory.push_back(scaledVol);
 
     //if we are bigger the the size we want to record - lets drop the oldest value
-    if( volHistory.size() >= 400 ){
-	    volHistory.erase(volHistory.begin(), volHistory.begin()+1);
-    }
+    if(volHistory.size() >= 400)
+        volHistory.erase(volHistory.begin(), volHistory.begin()+1);
 
     // prepares laser manager to receive new points
     laser.update();
-
 }
 
 //--------------------------------------------------------------
@@ -63,24 +61,23 @@ void ofApp::draw(){
     
     updateControlPoints();
 
+    // Show polygon of control points.
     ofPolyline line;
-
-    for (auto point : points) {
-        line.addVertex(point.x, point.y, 0);
-    }
-
+    for (auto point : points)
+        line.addVertex(point.p[0], point.p[1], point.p[2]);
     line.close();
     line.scale(laserRadius*0.25, laserRadius*0.25);
     line.translate(origin);
     laser.drawPoly(line, color);
 
+    // Show container for the points.
     ofPolyline circle;
     circle.arc(ofPoint(0,0,0),1,1,0,360);
     circle.scale(laserRadius*0.25, laserRadius*0.25);
     circle.translate(origin);
     laser.drawPoly(circle, ofColor(255,0,0));
 
-    // sends points to the DAC
+    // Sends points to the DAC
     laser.send();
 
     laser.drawUI();
@@ -92,42 +89,33 @@ void ofApp::updateControlPoints(){
 
     for (std::size_t i=0, max=points.size(); i!=max; i++) {
 
-        float point_step = 0.01;
+        float step_size = 0.01;
+        float heading_offset = (rand() % 10 + 1) * 0.001;
 
-        float dist = sqrt(pow(points[i].x, 2) + pow(points[i].y, 2));
+        // If point reaches edge, reflect it.
+        if (glm::length(points[i].p) >= 1) { 
+            step_size = 0.07;
 
-        if (dist >= 1) { 
-            point_step = 0.07;
-
-            ofVec3f normal = {
-                points[i].x,
-                points[i].y,
-                0,
+            glm::vec3 normal = {
+                points[i].p[0],
+                points[i].p[1],
+                points[i].p[2],
             };
 
-            ofVec3f para_to_tangent = normal.dot(points[i].h) * normal;
-            ofVec3f perp_to_tangent = points[i].h - para_to_tangent;
-                
-            // Invert parallel component for reflection.
-            points[i].h = perp_to_tangent - para_to_tangent;
+            points[i].h = glm::reflect(points[i].h, normal);
 
-            if (points[i].h[0] > 0) {
-                points[i].direction = -1;
-                points[i].angle = atan(points[i].h[1]/points[i].h[0]) * 180 / M_PI;
-            } 
-            else if (points[i].h[0] < 0) {
-                points[i].direction = 1;
-                points[i].angle = atan(points[i].h[1]/points[i].h[0]) * 180 / M_PI;
-            } else {
-                // Don't calculate angle if X component is zero.
-                continue; 
-            }
-
-            points[i].angle += rand() % 2 + 0;
+            // if (points[i].h[0] > 0) {
+            //     points[i].direction = -1;
+            // } 
+            // else if (points[i].h[0] < 0) {
+            //     points[i].direction = 1;
+            // }
         }
 
-        points[i].x += cos(points[i].angle*M_PI/180) * point_step * points[i].direction;
-        points[i].y += sin(points[i].angle*M_PI/180) * point_step * points[i].direction;
+        float step = points[i].direction * step_size;
+        points[i].p[0] += glm::dot(points[i].h, {1 - heading_offset,0,0}) * step;
+        points[i].p[1] += glm::dot(points[i].h, {0,1 - heading_offset,0}) * step;
+        points[i].p[2] += glm::dot(points[i].h, {0,0,1 - heading_offset}) * step;
     }
 }
 
@@ -144,10 +132,9 @@ void ofApp::keyReleased(int key) {
 //--------------------------------------------------------------
 void ofApp::audioIn(ofSoundBuffer &inBuffer) {
     float curVol = 0.0;
-
-    // samples are "interleaved"
     int numCounted = 0;	
 
+    // Samples are "interleaved".
     for (size_t i = 0; i < inBuffer.getNumFrames(); i++){
 	    left[i]	= inBuffer[i*2]*0.5;
 	    right[i]	= inBuffer[i*2+1]*0.5;
@@ -212,26 +199,23 @@ void ofApp::setupControlPoints(){
 
     // Initialize points randomly inside unit circle.
     for (std::size_t i=0, max=points.size(); i!=max; i++) {
-        float r = (rand() % 99 + 0)*0.01;
-        float theta = rand() % 360 + 0;
-        points[i].x = r*cos(theta*M_PI/180); 
-        points[i].y = r*sin(theta*M_PI/180); 
-
-        // Initialize heading.
-        points[i].h = {
-            cos(rand() % 360 + 0),
-            sin(rand() % 360 + 0),
-            0,
+        // Initialize unit vector position.
+        points[i].p = {
+            rand() % 99 + 0,
+            rand() % 99 + 0,
+            rand() % 99 + 0,
         };
+        points[i].p = glm::normalize(points[i].p);
 
-        if (points[i].h[1]*points[i].h[0] > 0) {
-            points[i].direction = 1;
-            points[i].angle = atan(points[i].h[1]/points[i].h[0]) * 180 / M_PI;
-        } 
-        if (points[i].h[1]*points[i].h[0] < 0) {
-            points[i].direction = -1;
-            points[i].angle = atan(points[i].h[1]/points[i].h[0]) * 180 / M_PI;
-        }
+        // Initialize unit vector heading.
+        points[i].h = {
+            rand() % 99 + 0,
+            rand() % 99 + 0,
+            rand() % 99 + 0,
+        };
+        points[i].h = glm::normalize(points[i].h);
+
+        points[i].direction = 1;
     }
 }
 
@@ -245,8 +229,7 @@ void ofApp::setupParameters(){
    t.resize(points.size());
 
    for (int i=1; i<points.size(); i++) {
-	t[i] = sqrt(pow(points[i].x - points[i-1].x, 2) +  
-                    pow(points[i].y - points[i-1].y, 2));
+	t[i] = glm::length(points[i].p);
         d += t[i];
    }
 
