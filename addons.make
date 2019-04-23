@@ -8,3 +8,4 @@ ofxPoco
 ofxFft
 ofxEigen
 ofxBPMDetector
+ofxTinyspline

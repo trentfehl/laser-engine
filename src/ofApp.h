@@ -4,8 +4,8 @@
 #include "ofxLaserManager.h"
 #include "ofxLaserDacEtherdream.h"
 #include "ofxGui.h"
-#include "ofxEigen.h"
 #include "ofxBPMDetector.h"
+#include "splineEval.h"
 
 class ofApp : public ofBaseApp{
 
@@ -14,9 +14,6 @@ class ofApp : public ofBaseApp{
 	void update();
 	void draw();
 	void exit();
-	void setupParameters();
-	void setupControlPoints();
-	void updateControlPoints();
 
 	void keyPressed(int key);
 
@@ -41,14 +38,8 @@ class ofApp : public ofBaseApp{
 
 	bool showPolygon;
 	bool showBoundary;
-	struct ControlPoint {
-	    glm::vec3 p; // Position.
-	    glm::vec3 h; // Heading.
-	    int direction;
-	};
-	vector<ControlPoint> points;
-	vector<float> t;
-	vector<float> u;
-	int m; // Square of points.size()
-	int p; // Power.
+	bool showSpline;
+	SplineEval splineEval;
 };
+
+
