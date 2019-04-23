@@ -7,7 +7,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    ofSetFrameRate(30);
+    ofSetFrameRate(40);
 
     // Size window.
     laserRadius = 400;
@@ -33,9 +33,8 @@ void ofApp::setup(){
     settings.bufferSize = 256;
     soundStream.setup(settings);
 
-    // Setup GUI.
     laser.initGui();
-    cgui.setup("color panel", "colors.xml", ofGetWidth()-240, 700 );
+    cgui.setup("color panel", "colors.xml", ofGetWidth()-240, 700);
     cgui.add(color.set("color", ofColor(190, 0, 190), ofColor(0), ofColor(255)));
 
     splineEval.setupControlPoints();
@@ -59,12 +58,15 @@ void ofApp::draw(){
     ofBackground(0);
     ofNoFill();
     ofSetLineWidth(1);
-    ofDrawRectangle(0, 0, laserDiameter, laserDiameter);
+    ofDrawRectangle(0, 0, laserDiameter+240, laserDiameter);
 
     float scale_x = laserRadius*0.35;
     float scale_y = laserRadius*0.35;
     
-    if (!splineEval.isThreadRunning()) splineEval.updateControlPoints();
+    if (!splineEval.isThreadRunning()) {
+        splineEval.updateControlPoints();
+        splineEval.startThread();
+    }
 
     if (showPolygon) {
         ofPolyline polygon;
@@ -73,7 +75,7 @@ void ofApp::draw(){
         polygon.close();
         polygon.scale(scale_x, scale_y);
         polygon.translate(origin);
-        laser.drawPoly(polygon, ofColor(0,255,0));
+        polylines.push_back({polygon, ofColor(0,255,0)});
     }
 
     if (showBoundary) {
@@ -81,18 +83,28 @@ void ofApp::draw(){
         circle.arc(ofPoint(0,0,0),1,1,0,360);
         circle.scale(scale_x, scale_y);
         circle.translate(origin);
-        laser.drawPoly(circle, ofColor(255,0,0));
+        polylines.push_back({circle, ofColor(255,0,0)});
     }
 
     if (showSpline) {
         ofPolyline spline;
+
+        splineEval.lock();
         for (SplineEval::Result r : splineEval.results)
             spline.addVertex(r.point[0], r.point[1], r.point[2]);
+        splineEval.unlock();
+
         spline.close();
         spline.scale(scale_x, scale_y);
         spline.translate(origin);
-        laser.drawPoly(spline, color);
+        polylines.push_back({spline, color});
     }
+
+    // Laser polylines.
+    for(size_t i = 0; i<polylines.size(); i++) {
+	    laser.drawPoly(polylines[i].line, polylines[i].line_color);
+    }
+    polylines.clear();
 
     // Sends points to the DAC
     laser.send();

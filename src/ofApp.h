@@ -40,6 +40,12 @@ class ofApp : public ofBaseApp{
 	bool showBoundary;
 	bool showSpline;
 	SplineEval splineEval;
+
+	struct polyLine {
+	    ofPolyline line;
+	    ofColor line_color;
+	};
+	std::vector<polyLine> polylines;
 };
 
 

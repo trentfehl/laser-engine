@@ -6,15 +6,12 @@ void SplineEval::threadedFunction(){
 
     float range = spline.domain().max() - spline.domain().min();
 
+    lock();
     for (std::size_t i=0, max=n_evals; i!=max; i++) {
         float location = (i / (double)n_evals * range) + spline.domain().min();
         results[i].point = spline.eval(location).result();
-        // std::cout << "i: " << i << ", x: " << results[i].point[0]
-        //                         << ", y: " << results[i].point[1]
-        //                         << ", z: " << results[i].point[2] << std::endl;
     }
-
-    stopThread();
+    unlock();
 }
 
 //--------------------------------------------------------------
@@ -46,11 +43,11 @@ void SplineEval::updateControlPoints(){
     spline = tinyspline::BSpline(
         controls.size(),
         3,
-        3,
+        2,
         TS_CLAMPED
     );
 
-    ctrlp = spline.controlPoints();
+    ctrlp.resize(controls.size()*3);
 
     // Setup control points.
     for (std::size_t i=0, max=controls.size(); i!=max; i++) {
@@ -61,8 +58,6 @@ void SplineEval::updateControlPoints(){
     }
 
     spline.setControlPoints(ctrlp);
-
-    startThread();
 }
 
 //--------------------------------------------------------------
