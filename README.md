@@ -7,7 +7,7 @@ inside of a sphere. The gif below shows the spline in purple, the control polygo
 green and the boundary in red. We're really looking at a cross section of the boundary 
 at z = 0. 
 
-![Alt Text](/media/spline_details_1.gif)  ![Alt Text](/media/spline_details_2.gif)
+<div style="text-align:center"><img src="/media/spline_details_1.gif" width="372" height="216"> <img src="/media/spline_details_2.gif" width="372" height="216"><div>
 
 ### To-Do
 - Smooth rotation of spline
