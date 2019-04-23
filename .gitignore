@@ -34,6 +34,7 @@
 # Folders
 bin/
 obj/
+third_party/
 
 # Swp files
 *.swp

@@ -28,6 +28,7 @@ Project{
             'ofxFft',
             'ofxEigen',
             'ofxBPMDetector',
+            'ofxTinyspline',
         ]
 
         // additional flags for the project. the of module sets some

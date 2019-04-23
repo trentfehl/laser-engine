@@ -7,9 +7,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    ofSetFrameRate(40);
-    // showPolygon = true;
-    // showBoundary = true;
+    ofSetFrameRate(30);
 
     // Size window.
     laserRadius = 400;
@@ -35,13 +33,12 @@ void ofApp::setup(){
     settings.bufferSize = 256;
     soundStream.setup(settings);
 
-    // Setup GUI.
     laser.initGui();
-    cgui.setup("color panel", "colors.xml", ofGetWidth()-240, 700 );
+    cgui.setup("color panel", "colors.xml", ofGetWidth()-240, 700);
     cgui.add(color.set("color", ofColor(190, 0, 190), ofColor(0), ofColor(255)));
 
-    setupControlPoints();
-    setupParameters();
+    splineEval.setupControlPoints();
+    showSpline = true;
 }
 
 //--------------------------------------------------------------
@@ -61,61 +58,59 @@ void ofApp::draw(){
     ofBackground(0);
     ofNoFill();
     ofSetLineWidth(1);
-    ofDrawRectangle(0, 0, laserDiameter, laserDiameter);
+    ofDrawRectangle(0, 0, laserDiameter+240, laserDiameter);
+
+    float scale_x = laserRadius*0.35;
+    float scale_y = laserRadius*0.35;
     
-    updateControlPoints();
+    if (!splineEval.isThreadRunning()) {
+        splineEval.updateControlPoints();
+        splineEval.startThread();
+    }
 
     if (showPolygon) {
         ofPolyline polygon;
-        for (auto point : points)
-            polygon.addVertex(point.p[0], point.p[1], point.p[2]);
+        for (SplineEval::Control c : splineEval.controls)
+            polygon.addVertex(c.point[0], c.point[1], c.point[2]);
         polygon.close();
-        polygon.scale(laserRadius*0.25, laserRadius*0.25);
+        polygon.scale(scale_x, scale_y);
         polygon.translate(origin);
-        laser.drawPoly(polygon, ofColor(0,255,0));
+        polylines.push_back({polygon, ofColor(0,255,0)});
     }
 
     if (showBoundary) {
         ofPolyline circle;
-        circle.arc(ofPoint(0,0,0),1,1,0,360);
-        circle.scale(laserRadius*0.25, laserRadius*0.25);
+        circle.arc(ofPoint(0,0,0),1,1,0,360,100);
+        circle.scale(scale_x, scale_y);
         circle.translate(origin);
-        laser.drawPoly(circle, ofColor(255,0,0));
+        polylines.push_back({circle, ofColor(255,0,0)});
     }
+
+    if (showSpline) {
+        ofPolyline spline;
+
+        splineEval.lock();
+        for (SplineEval::Result r : splineEval.results)
+            spline.addVertex(r.point[0], r.point[1], r.point[2]);
+        splineEval.unlock();
+
+        spline.close();
+        spline.scale(scale_x, scale_y);
+        spline.translate(origin);
+        polylines.push_back({spline, color});
+    }
+
+    // Laser polylines.
+    for(size_t i = 0; i<polylines.size(); i++) {
+	    laser.drawPoly(polylines[i].line, polylines[i].line_color);
+    }
+    polylines.clear();
 
     // Sends points to the DAC
     laser.send();
 
     laser.drawUI();
     cgui.draw();
-}
-
-//--------------------------------------------------------------
-void ofApp::updateControlPoints(){
-
-    for (std::size_t i=0, max=points.size(); i!=max; i++) {
-
-        float step_size = 0.01;
-        float heading_offset = (rand() % 10 + 1) * 0.001;
-
-        // If point reaches edge, reflect it.
-        if (glm::length(points[i].p) >= 1) { 
-            step_size = 0.02; // Make sure to get back across.
-
-            glm::vec3 normal = {
-                points[i].p[0],
-                points[i].p[1],
-                points[i].p[2],
-            };
-
-            points[i].h = glm::reflect(points[i].h, normal);
-        }
-
-        float step = points[i].direction * step_size;
-        points[i].p[0] += glm::dot(points[i].h, {1 - heading_offset,0,0}) * step;
-        points[i].p[1] += glm::dot(points[i].h, {0,1 - heading_offset,0}) * step;
-        points[i].p[2] += glm::dot(points[i].h, {0,0,1 - heading_offset}) * step;
-    }
 }
 
 //--------------------------------------------------------------
@@ -130,81 +125,15 @@ void ofApp::keyPressed(int key){
         showBoundary = !showBoundary;
     }
 
+    // Show spline for the points.
+    if (key == 's') {
+        showSpline = !showSpline;
+    }
 } 
 
 //--------------------------------------------------------------
 void ofApp::audioReceived(float *input, int bufferSize, int nChannels){
     bpmDetector.processFrame(input, bufferSize, nChannels);
-}
-
-//--------------------------------------------------------------
-void ofApp::setupControlPoints(){ 
-    // Set number of control points.
-    points.resize(5);
-
-    // Initialize random seed.
-    srand (time(NULL));
-
-    // Initialize points randomly inside unit circle.
-    for (std::size_t i=0, max=points.size(); i!=max; i++) {
-        // Initialize unit vector position.
-        points[i].p = {
-            rand() % 99 + 0,
-            rand() % 99 + 0,
-            rand() % 99 + 0,
-        };
-        points[i].p = glm::normalize(points[i].p);
-
-        // Initialize unit vector heading.
-        points[i].h = {
-            rand() % 99 + 0,
-            rand() % 99 + 0,
-            rand() % 99 + 0,
-        };
-        points[i].h = glm::normalize(points[i].h);
-
-        points[i].direction = 1;
-    }
-}
-
-//--------------------------------------------------------------
-void ofApp::setupParameters(){
-   // With equal_length method and fixed lengths between knots, only
-   // solve for parameters once.
-   // http://demonstrations.wolfram.com/GlobalBSplineCurveInterpolation/
-
-   float d = 0.0f;
-   t.resize(points.size());
-
-   for (int i=1; i<points.size(); i++) {
-	t[i] = glm::length(points[i].p);
-        d += t[i];
-   }
-
-   t[0] = 0.0f;
-   t[1] = 1.0f;
-
-   for (int i=1; i<(t.size()-1); i++) {
-       t[i] = t[i-1] + t[i]/d;
-   }
-
-   p = 3; // Power.
-
-   m = pow(points.size(), 2);
-   u.resize(m);
-
-   for (int j=0; j<=p; j++) {
-       u[j] = 0.0f;
-   }
-   for (int j=(p+1); j<(m-p); j++) {
-       for (int i=0; i<(j-p); i++) {
-           u[j] += t[i];
-       }
-       u[j] /= p;
-   }
-   for (int j=(m-p); j<m; j++) {
-       u[j] = 1.0f;
-   }
 }
 
 //--------------------------------------------------------------
