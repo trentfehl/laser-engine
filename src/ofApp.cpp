@@ -7,7 +7,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    ofSetFrameRate(40);
+    ofSetFrameRate(30);
 
     // Size window.
     laserRadius = 400;
@@ -80,7 +80,7 @@ void ofApp::draw(){
 
     if (showBoundary) {
         ofPolyline circle;
-        circle.arc(ofPoint(0,0,0),1,1,0,360);
+        circle.arc(ofPoint(0,0,0),1,1,0,360,100);
         circle.scale(scale_x, scale_y);
         circle.translate(origin);
         polylines.push_back({circle, ofColor(255,0,0)});
