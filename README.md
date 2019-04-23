@@ -2,12 +2,12 @@
 Algorithmically generated laser show. Utilizes openFrameworks and addon ofxLaser.
 
 ### Behind The Scenes
-The core of this display is a B-Spline controlled by points that move freely around the
-inside of a sphere. The gif below shows the spline in purple, the control polygon in 
-green and the boundary in red. We're really looking at a cross section of the boundary 
-at z = 0. 
+At the core of this display is a B-Spline controlled by points that move freely around the
+inside of a sphere. The gif below is a demo showing the spline in purple and toggling the display of the control polygon (green) and the boundary (red). The portion of the boundary that we're really looking is a cross section at z = 0. 
 
-<div style="text-align:center"><img src="/media/spline_details_1.gif" width="372" height="216"> <img src="/media/spline_details_2.gif" width="372" height="216"><div>
+<p align="center">
+<img src="/media/spline_details.gif" width="372" height="216">
+</p>
 
 ### To-Do
 - Smooth rotation of spline
