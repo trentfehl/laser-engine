@@ -4,6 +4,7 @@ Algorithmically generated laser show. Utilizes openFrameworks and addon ofxLaser
 <p align="center">
 <img src="/media/nominal.gif" width="496" height="289">
 </p>
+<br />
 
 ### Behind The Scenes
 At the core of this display is a B-Spline controlled by points that move freely around the
