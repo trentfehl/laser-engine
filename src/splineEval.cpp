@@ -1,7 +1,7 @@
 #include "splineEval.h"
 
 void SplineEval::threadedFunction(){
-    int n_evals = 100;
+    int n_evals = 200;
     results.resize(n_evals);
 
     float range = spline.domain().max() - spline.domain().min();
@@ -24,7 +24,7 @@ void SplineEval::updateControlPoints(){
 
         // If point reaches edge, reflect it.
         if (glm::length(controls[i].point) >= 1) { 
-            step_size = 0.02; // Make sure to get back across.
+            step_size = 0.013; // Make sure to get back across.
 
             glm::vec3 normal = {
                 controls[i].point[0],
@@ -63,7 +63,7 @@ void SplineEval::updateControlPoints(){
 //--------------------------------------------------------------
 void SplineEval::setupControlPoints(){ 
     // Set number of control points.
-    controls.resize(6);
+    controls.resize(7);
 
     // Initialize random seed.
     srand (time(NULL));

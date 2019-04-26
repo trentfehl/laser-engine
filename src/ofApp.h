@@ -14,6 +14,7 @@ class ofApp : public ofBaseApp{
 	void update();
 	void draw();
 	void exit();
+	void rotate();
 
 	void keyPressed(int key);
 
@@ -27,13 +28,24 @@ class ofApp : public ofBaseApp{
 	ofSoundStreamSettings settings;
 	ofxBPMDetector bpmDetector;
 	void audioReceived(float *input, int bufferSize, int nChannels);
+	float bpm;
 
 	float elapsedTime; 
 	int laserRadius;
 	int laserDiameter;
 	glm::vec3 origin;
 
-	int step;
+	// Spline rotation.
+	bool rotateSpline;
+	bool showRotationAxis;
+	float theta;
+	int theta_step;
+	int theta_duration;
+	float phi;
+	int phi_step;
+	int phi_duration;
+	float angle;
+	glm::vec3 axis;
 	ofQuaternion quat;
 
 	bool showPolygon;
@@ -47,5 +59,3 @@ class ofApp : public ofBaseApp{
 	};
 	std::vector<polyLine> polylines;
 };
-
-

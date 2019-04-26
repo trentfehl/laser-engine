@@ -9,6 +9,17 @@ inside of a sphere. The gif below is a demo showing the spline in purple and tog
 <img src="/media/spline_details.gif" width="496" height="289">
 </p>
 
+### Rotations
+The spline is rotated around an axis at a constant rate. The axis itself initializes in a random location and drifts. In
+the first image below you can see the boundary that we saw above that was a slice through z=0 be rotated along with the
+spline. I had to locally modify OpenFramework's ofPolyline scale() function to take scaling in the Z-axis for the spline
+to not collapse when rotated so that the viewer was looking perpendicular to the rotated Z-axis.
+
+<p align="center">
+<img src="/media/rotation.gif" width="496" height="289">
+</p>
+
 ### To-Do
-- Smooth rotation of spline
+- ~~Smooth rotation of spline.~~
 - Rotation rate and rotation axis drift driven by audio BPM
+- Dampen control point bounces off sphere boundary.
