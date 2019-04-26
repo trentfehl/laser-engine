@@ -26,6 +26,6 @@ to not collapse when rotated so that the viewer was looking perpendicular to the
 
 ### Local Mods
 I made a few changes to local repositories that I've checked out.
-- Added rotateQuat() for ofPolyline -> https://github.com/openframeworks/openFrameworks/compare/master...trentfehl:rotate_quat
+- Added rotateQuat() for ofPolyline -> [Issue](https://github.com/openframeworks/openFrameworks/issues/6267)
 - Added Z-axis component support to ofPolyline's scale().
 - ofxTinyspline was forked a long time ago, I just replaced the four core files with updated versions.
