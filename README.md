@@ -23,3 +23,9 @@ to not collapse when rotated so that the viewer was looking perpendicular to the
 - ~~Smooth rotation of spline.~~
 - Rotation rate and rotation axis drift driven by audio BPM
 - Dampen control point bounces off sphere boundary.
+
+### Local Mods
+I made a few changes to local repositories that I've checked out.
+- Added rotateQuat() for ofPolyline -> https://github.com/openframeworks/openFrameworks/compare/master...trentfehl:rotate_quat
+- Added Z-axis component support to ofPolyline's scale().
+- ofxTinyspline was forked a long time ago, I just replaced the four core files with updated versions.
