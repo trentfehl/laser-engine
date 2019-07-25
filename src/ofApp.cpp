@@ -27,13 +27,21 @@ void ofApp::setup(){
     step = 10; // * M_PI
     quat.set(0, 0, 0, 1);
 
-    // Hypotrochoid setup.
+    // Geometry setup.
     factor_r = 2;
     R = round(laserRadius*0.80);
     d = round(laserRadius*0.80);
-
-    // Rose setup.
     k = 5;
+
+    // Audio setup.
+    sampleRate = 44100;
+    bufferSize = 256;
+    nBuffers = 4;
+    outputChannels = 2;
+    inputChannels = 2;
+    ofSoundStreamSetup(settings);
+
+    fft = ofxFft::create(bufferSize, OF_FFT_WINDOW_HAMMING);
 }
 
 //--------------------------------------------------------------
@@ -188,7 +196,18 @@ void ofApp::keyReleased(int key) {
 }  
 
 //--------------------------------------------------------------
+void ofApp::audioIn(ofSoundBuffer &inBuffer) {
+
+}
+
+//--------------------------------------------------------------
+void ofApp::audioOut(ofSoundBuffer &outBuffer){
+
+}
+
+//--------------------------------------------------------------
 void ofApp::exit(){ 
     laser.saveSettings();
+    ofSoundStreamClose();
     dac.close();
 }

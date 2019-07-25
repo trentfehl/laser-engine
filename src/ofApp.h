@@ -4,6 +4,7 @@
 #include "ofxLaserManager.h"
 #include "ofxLaserDacEtherdream.h"
 #include "ofxGui.h"
+#include "ofxFft.h"
 
 class ofApp : public ofBaseApp{
 
@@ -47,4 +48,17 @@ class ofApp : public ofBaseApp{
 	// Rose
 	void drawRose();
 	int k;
+
+	// Audio
+	void audioIn(ofSoundBuffer &inBuffer)
+	void audioOut(ofSoundBuffer &outBuffer)
+	ofSoundStreamSettings settings;
+	settings.sampleRate = (size_t)  sampleRate;
+	settings.bufferSize = (size_t)  bufferSize;
+	settings.numBuffers = (size_t)  nBuffers;
+	settings.numOutputChannels = (size_t) outputChannels;
+	settings.numInputChannels = (size_t)  inputChannels;
+
+	ofxFft* fft;
+	ofMutex soundMutex;
 };
