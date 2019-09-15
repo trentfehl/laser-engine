@@ -32,24 +32,23 @@ void SplineEval::updateControlPoints(){
     for (std::size_t i=0, max=controls.size(); i!=max; i++) {
 
         float step_size = 0.01;
-        float heading_offset = (rand() % 10 + 1) * 0.001;
 
-        // If point reaches edge, reflect it.
+        // If point reaches edge, normalize and then reflect it.
         if (glm::length(controls[i].point) >= 1) { 
-            step_size = 0.013; // Make sure to get back across.
+            controls[i].point = glm::normalize(controls[i].point);
 
-            glm::vec3 normal = {
+            const glm::vec3 normal = {
                 controls[i].point[0],
                 controls[i].point[1],
                 controls[i].point[2],
             };
 
-            controls[i].heading = glm::reflect(controls[i].heading, normal);
+            controls[i].heading = glm::normalize(glm::reflect(controls[i].heading, normal));
         }
 
-        controls[i].point[0] += glm::dot(controls[i].heading, {1 - heading_offset,0,0}) * step_size;
-        controls[i].point[1] += glm::dot(controls[i].heading, {0,1 - heading_offset,0}) * step_size;
-        controls[i].point[2] += glm::dot(controls[i].heading, {0,0,1 - heading_offset}) * step_size;
+        controls[i].point[0] += glm::dot(controls[i].heading, {1,0,0}) * step_size;
+        controls[i].point[1] += glm::dot(controls[i].heading, {0,1,0}) * step_size;
+        controls[i].point[2] += glm::dot(controls[i].heading, {0,0,1}) * step_size;
     }
 
     spline = tinyspline::BSpline(
